@@ -7,14 +7,14 @@ const API_ENDPOINT: &str = "https://api-mainnet.celenium.io/v1/block";
 
 /// The query parameters that the agent will inject into the search.
 #[derive(Deserialize)]
-pub struct CelestiaSearchArgs {
+pub struct CelestiaQueryArgs {
     /// The block height at which to query.
     height: u64,
 }
 
 /// The fields that are received in the search response.
 #[derive(Serialize)]
-pub struct CelestiaOption {
+pub struct CelestiaResponseFields {
     blobs_count: u64,
     blobs_size: u64,
     block_time: u64,
@@ -46,10 +46,11 @@ pub struct CelestiaSearchTool;
 impl Tool for CelestiaSearchTool {
     const NAME: &'static str = "search_blocks";
 
-    type Args = CelestiaSearchArgs;
+    type Args = CelestiaQueryArgs;
     type Output = String;
     type Error = CelestiaSearchError;
 
+    /// Defines the parameters and terms that need to be parsed from user prompts
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
             name: Self::NAME.to_string(),
@@ -64,6 +65,7 @@ impl Tool for CelestiaSearchTool {
         }
     }
 
+    /// Specifies how the agent should respond to user prompts
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         // Format the search URL
         let url = format!("{}/{}/stats", API_ENDPOINT, args.height);
@@ -103,7 +105,7 @@ impl Tool for CelestiaSearchTool {
             return Err(CelestiaSearchError::ApiError(error_message.to_string()));
         }
 
-        // Populate the CelestiaOption type with fields from the response
+        // Populate the CelestiaResponseFields type with fields from the response
         let tx_count = data
             .get("tx_count")
             .and_then(|tc| tc.as_str())
@@ -177,7 +179,7 @@ impl Tool for CelestiaSearchTool {
             .and_then(|c| c.as_str())
             .unwrap_or("0");
 
-        let celestia_option = CelestiaOption {
+        let celestia_resonse = CelestiaResponseFields {
             blobs_count,
             blobs_size,
             block_time,
@@ -196,7 +198,7 @@ impl Tool for CelestiaSearchTool {
         };
 
         let mut output = String::new();
-        output.push_str(&format!("    The gas fee is: {}", celestia_option.fee));
+        output.push_str(&format!("    The gas fee is: {}", celestia_resonse.fee));
 
         Ok(output)
     }
